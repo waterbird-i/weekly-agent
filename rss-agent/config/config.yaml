@@ -1,0 +1,53 @@
+# RSS Agent 配置文件
+
+# RSS订阅源列表
+rss_feeds:
+  - name: "AI洞察日报"
+    url: "https://justlovemaki.github.io/CloudFlare-AI-Insight-Daily/rss.xml"
+  - name: "前端技术文章"
+    url: "https://fed.chanceyu.com/atom.xml"
+
+# 时间过滤配置（单位：小时）
+time_filter:
+  hours: 168
+
+# AI前过滤配置
+pre_filter:
+  # 关键词过滤（包含这些关键词的文章会被保留）
+  include_keywords:
+    - "AI"
+    - "Agent"
+    - "人工智能"
+    - "Gemini"
+    - "GPT"
+    - "Claude"
+    - "OpenAI"
+    - "大模型"
+    - "LLM"
+    - "前端"
+    - "工具"
+  # 排除关键词（包含这些关键词的文章会被排除）
+  exclude_keywords: []
+  # 最小文章长度（字符数）
+  min_content_length: 100
+
+# AI处理配置
+ai:
+  api_base: "https://200.xstx.info/v1"
+  model: "claude-opus-4-5-20251101-thinking"
+  api_key: "sk-2YL15laKSLTxLrvKUp1Db5rZrmmMazHuFJ4Qr7Pc8VVo6smU"
+  max_tokens: 200000
+
+# 输出配置
+output:
+  # 输出文件路径
+  file_path: "output/rss_analysis.md"
+  # 每次处理的最大文章数
+  max_articles: 20
+
+# 去重配置
+dedup:
+  # 已处理URL的缓存文件
+  cache_file: "cache/processed_urls.json"
+  # 缓存过期时间（小时）
+  cache_expire_hours: 168  # 7天

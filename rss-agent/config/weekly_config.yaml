@@ -1,0 +1,111 @@
+ai:
+  api_base: https://200.xstx.info/v1
+  api_key: sk-2YL15laKSLTxLrvKUp1Db5rZrmmMazHuFJ4Qr7Pc8VVo6smU
+  max_tokens: 200000
+  model: claude-opus-4-5-20251101-thinking
+  weekly_prompt: '你是一个前端技术周刊编辑助手。
+
+
+    【核心原则】
+
+    每条资讯只描述一件具体的事，不要聚合多条新闻。如果原文是日刊/周刊合集，提取其中符合条件的新闻来置于对应的分类（时事、AI资讯、工具、教程、训练）中描述。
+
+
+    【禁止的写法】
+
+    "本期聚焦AI领域多项重要进展：OpenAI首款智能笔...；中国95后团队推出MinT...；ControlNet..."
+
+    这种聚合多条新闻的描述是错误的！
+
+
+    【正确的写法示例】
+
+    标题：JerryScript 3.0
+
+    简介：JerryScript 3.0.0发布。这是一个用于物联网/嵌入式的超轻量级JS引擎，完全符合ES 5.1规范，通过了84%的Test262测试。
+
+
+    标题：Bun 1.1.39
+
+    简介：Bun更新1.1.39版本，引入新的文本格式锁文件bun.lock，改善了git diffs和合并冲突的处理，完全兼容Node.js核心模块。
+
+
+    请根据以下内容，完成任务：
+
+    1. 生成一个简短的中文概括标题（15字以内，只描述一件事的核心主题）
+
+    2. 生成一段约100字的中文简介（言简意赅，只描述一件具体的事）
+
+    重要要求：
+
+    - 只输出纯 JSON，不要包含任何其他文字、解释或代码块标记
+
+    - 不要输出 ```json 或 ``` 标记
+
+    - 简介中不要包含"Article URL"、"Comments URL"、"Points"等元数据
+
+
+    输出格式（直接输出 JSON）：
+
+    {"title": "简短中文标题", "summary": "约100字的中文简介", "is_english": true或false}
+
+    '
+categories:
+  ai_news:
+    feeds:
+    - name: AI洞察日报
+      url: https://justlovemaki.github.io/CloudFlare-AI-Insight-Daily/rss.xml
+    - name: 前端周刊第187期
+      url: https://mp.weixin.qq.com/s/xjulQDSMNXbbqOsg-oZ7ZQ
+    max_count: 15
+    min_count: 3
+    name: AI资讯
+  news:
+    feeds:
+    - name: AI洞察日报
+      url: https://justlovemaki.github.io/CloudFlare-AI-Insight-Daily/rss.xml
+    - name: 前端周刊第187期
+      url: https://mp.weixin.qq.com/s/xjulQDSMNXbbqOsg-oZ7ZQ
+    - name: 前端技术文章
+      url: https://fed.chanceyu.com/atom.xml
+    max_count: 6
+    min_count: 4
+    name: 时事
+  tools:
+    feeds:
+    - name: 前端周刊第187期
+      url: https://mp.weixin.qq.com/s/xjulQDSMNXbbqOsg-oZ7ZQ
+    - name: 前端技术文章
+      url: https://fed.chanceyu.com/atom.xml
+    max_count: 8
+    min_count: 3
+    name: 工具
+  training:
+    leetcode:
+      count: 2
+      difficulties:
+      - easy
+      - medium
+      enabled: true
+    max_count: 3
+    min_count: 1
+    name: 训练
+  tutorials:
+    feeds:
+    - name: 前端技术文章
+      url: https://fed.chanceyu.com/atom.xml
+    - name: 前端周刊第187期
+      url: https://mp.weixin.qq.com/s/xjulQDSMNXbbqOsg-oZ7ZQ
+    max_count: 2
+    min_count: 1
+    name: 教程
+dedup:
+  cache_expire_hours: 720
+  cache_file: cache/weekly_processed_urls.json
+time_filter:
+  hours: 100
+weekly:
+  current_issue: 148
+  date_format: '%Y%m%d'
+  output_template: output/NO{issue}.前端Weekly({date}).md
+  title_template: NO{issue}.前端Weekly({date})
