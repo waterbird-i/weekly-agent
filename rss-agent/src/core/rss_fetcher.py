@@ -5,13 +5,14 @@ RSS订阅抓取模块
 
 import re
 import feedparser
+import requests
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
 from dateutil import parser as date_parser
 import logging
 
-from ..utils import clean_html
+from ..utils import clean_html, create_retry_session
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -49,14 +50,21 @@ class Article:
 class RSSFetcher:
     """RSS订阅抓取器"""
     
-    def __init__(self, feeds: List[Dict[str, str]]):
+    def __init__(self, feeds: List[Dict[str, str]], timeout: int = 15):
         """
         初始化RSS抓取器
         
         Args:
             feeds: RSS源列表，每个元素包含name和url
+            timeout: 请求超时时间（秒）
         """
         self.feeds = feeds
+        self.timeout = timeout
+        self.session = create_retry_session(total_retries=3, backoff_factor=0.8)
+        self.session.headers.update({
+            "User-Agent": "Mozilla/5.0 (RSS Agent)",
+            "Accept": "application/rss+xml, application/atom+xml, application/xml;q=0.9, */*;q=0.8"
+        })
     
     def _parse_date(self, entry: Any) -> Optional[datetime]:
         """
@@ -236,7 +244,13 @@ class RSSFetcher:
         
         try:
             logger.info(f"正在抓取RSS源: {feed_name} ({feed_url})")
-            parsed = feedparser.parse(feed_url)
+            if feed_url.startswith('http://') or feed_url.startswith('https://'):
+                response = self.session.get(feed_url, timeout=self.timeout)
+                response.raise_for_status()
+                parsed = feedparser.parse(response.content)
+            else:
+                # 支持本地文件路径（例如测试场景）
+                parsed = feedparser.parse(feed_url)
             
             if parsed.bozo and parsed.bozo_exception:
                 logger.warning(f"解析RSS源时出现问题: {feed_name}, 错误: {parsed.bozo_exception}")
@@ -265,8 +279,10 @@ class RSSFetcher:
             
             logger.info(f"从 {feed_name} 获取了 {len(articles)} 篇文章")
             
+        except requests.exceptions.RequestException as e:
+            logger.error(f"获取RSS源网络错误: {feed_name}, 错误类型: {type(e).__name__}, 错误: {e}")
         except Exception as e:
-            logger.error(f"获取RSS源失败: {feed_name}, 错误: {e}")
+            logger.error(f"获取RSS源失败: {feed_name}, 错误类型: {type(e).__name__}, 错误: {e}")
         
         return articles
     

@@ -7,5 +7,13 @@ cd "$SCRIPT_DIR"
 # 激活虚拟环境
 source venv/bin/activate
 
+# 加载本地环境变量（如 AI_API_KEY）
+if [ -f .env ]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env
+  set +a
+fi
+
 # 运行主程序，传递所有命令行参数
 python main.py "$@"

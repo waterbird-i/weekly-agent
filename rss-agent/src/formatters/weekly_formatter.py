@@ -22,10 +22,14 @@ class WeeklyItem:
         is_english: bool = False,
         category: str = "",
         short_title: str = "",  # AI 生成的简短中文标题
-        image_url: str = ""     # 文章配图 URL
+        image_url: str = "",    # 文章配图 URL
+        item_url: str = "",     # 条目级链接（优先使用）
+        source_url: str = ""    # 来源文章链接
     ):
         self.title = title
-        self.url = url
+        self.item_url = item_url or url
+        self.source_url = source_url or url
+        self.url = self.item_url  # 向后兼容
         self.summary = summary
         self.is_english = is_english
         self.category = category
@@ -36,6 +40,8 @@ class WeeklyItem:
         return {
             "title": self.title,
             "url": self.url,
+            "item_url": self.item_url,
+            "source_url": self.source_url,
             "summary": self.summary,
             "is_english": self.is_english,
             "category": self.category,
@@ -70,9 +76,10 @@ class WeeklyFormatter:
         # 使用 AI 生成的短标题，如果是英文内容，标题前加【英文】
         title_prefix = "【英文】" if item.is_english else ""
         display_title = item.short_title or item.title
+        link_url = item.item_url or item.source_url or item.url
         
         # 构建基本内容
-        markdown = f"""#### [{title_prefix}{display_title}]({item.url})
+        markdown = f"""#### [{title_prefix}{display_title}]({link_url})
 
 {item.summary}
 
@@ -95,10 +102,11 @@ class WeeklyFormatter:
         Returns:
             Markdown 格式字符串
         """
-        if not items:
-            return ""
-        
         markdown = f"# {name}\n\n"
+        if not items:
+            markdown += "_本期暂无更新。_\n\n"
+            return markdown
+
         for item in items:
             markdown += self._format_item(item)
         
@@ -129,8 +137,12 @@ class WeeklyFormatter:
         
         content = title
         for cat_name in category_order:
-            if cat_name in categories:
-                content += self._format_category(cat_name, categories[cat_name])
+            content += self._format_category(cat_name, categories.get(cat_name, []))
+
+        # 兼容额外自定义分类
+        for cat_name, items in categories.items():
+            if cat_name not in category_order:
+                content += self._format_category(cat_name, items)
         
         return content
     

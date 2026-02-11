@@ -6,8 +6,11 @@
 import json
 import os
 from datetime import datetime, timedelta
-from typing import List, Set
+from typing import List, Optional, Tuple
 from pathlib import Path
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 
 class URLDeduplicator:
@@ -115,6 +118,41 @@ class URLDeduplicator:
     def get_processed_count(self) -> int:
         """获取已处理URL数量"""
         return len(self.cache)
+
+
+def create_retry_session(
+    total_retries: int = 3,
+    backoff_factor: float = 0.8,
+    status_forcelist: Optional[Tuple[int, ...]] = None
+) -> requests.Session:
+    """
+    创建带重试机制的 requests Session
+
+    Args:
+        total_retries: 最大重试次数
+        backoff_factor: 退避系数
+        status_forcelist: 触发重试的状态码
+
+    Returns:
+        requests.Session
+    """
+    retry_codes = status_forcelist or (429, 500, 502, 503, 504)
+    retry = Retry(
+        total=total_retries,
+        connect=total_retries,
+        read=total_retries,
+        status=total_retries,
+        backoff_factor=backoff_factor,
+        status_forcelist=retry_codes,
+        allowed_methods=frozenset(["GET", "POST", "HEAD", "OPTIONS"]),
+        raise_on_status=False
+    )
+
+    adapter = HTTPAdapter(max_retries=retry)
+    session = requests.Session()
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    return session
 
 
 def clean_html(html_content: str) -> str:

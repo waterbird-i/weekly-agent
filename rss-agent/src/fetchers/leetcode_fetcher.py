@@ -5,9 +5,10 @@ LeetCode 题目抓取模块
 
 import random
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from dataclasses import dataclass
 import requests
+from ..utils import create_retry_session
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ class LeetCodeFetcher:
             difficulties: 难度过滤列表 ["easy", "medium", "hard"]
         """
         self.difficulties = [d.lower() for d in (difficulties or [])]
-        self.session = requests.Session()
+        self.session = create_retry_session(total_retries=3, backoff_factor=0.8)
         self.session.headers.update({
             "Content-Type": "application/json",
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
@@ -96,33 +97,27 @@ class LeetCodeFetcher:
             "filters": {}
         }
         
-        try:
-            # 尝试中国站点
-            response = self.session.post(
-                self.CN_API_URL,
-                json={"query": query, "variables": variables},
-                timeout=10
-            )
-            
-            if response.status_code == 200:
+        for endpoint in (self.CN_API_URL, self.API_URL):
+            try:
+                response = self.session.post(
+                    endpoint,
+                    json={"query": query, "variables": variables},
+                    timeout=10
+                )
+                if response.status_code != 200:
+                    logger.warning(f"LeetCode 请求返回非 200: {endpoint}, status={response.status_code}")
+                    continue
+
                 data = response.json()
                 questions = data.get("data", {}).get("problemsetQuestionList", {}).get("questions", [])
                 if questions:
                     return questions
-            
-            # 如果中国站点失败，尝试国际站点
-            response = self.session.post(
-                self.API_URL,
-                json={"query": query, "variables": variables},
-                timeout=10
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                return data.get("data", {}).get("problemsetQuestionList", {}).get("questions", [])
-                
-        except Exception as e:
-            logger.error(f"获取 LeetCode 题目列表失败: {e}")
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"请求 LeetCode 失败: {endpoint}, 错误类型: {type(e).__name__}, 错误: {e}")
+            except ValueError as e:
+                logger.warning(f"解析 LeetCode 响应失败: {endpoint}, 错误: {e}")
+            except Exception as e:
+                logger.error(f"获取 LeetCode 题目列表失败: {endpoint}, 错误类型: {type(e).__name__}, 错误: {e}")
         
         return []
     

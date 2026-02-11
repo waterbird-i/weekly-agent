@@ -6,6 +6,7 @@ AI处理模块
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 import logging
+import os
 from openai import OpenAI
 
 from .rss_fetcher import Article
@@ -71,9 +72,13 @@ class AIProcessor:
         
         self.api_base = ai_config.get('api_base', 'https://200.xstx.info/v1')
         self.model = ai_config.get('model', 'claude-opus-4-5-20251101-thinking')
-        self.api_key = ai_config.get('api_key', '')
+        self.api_key_env = ai_config.get('api_key_env', 'AI_API_KEY')
+        self.api_key = os.getenv(self.api_key_env) or ai_config.get('api_key', '')
         self.max_tokens = ai_config.get('max_tokens', 4096)
         self.temperature = ai_config.get('temperature', 0.7)
+
+        if not self.api_key:
+            logger.warning(f"未检测到 AI API Key，请设置环境变量 {self.api_key_env}")
         
         # 初始化OpenAI客户端（兼容API）
         self.client = OpenAI(

@@ -4,7 +4,7 @@
 """
 
 from datetime import datetime, timezone, timedelta
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import logging
 import re
 
@@ -16,14 +16,16 @@ logger = logging.getLogger(__name__)
 class ContentFilter:
     """内容过滤器，在AI处理前进行预过滤"""
     
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], deduplicator: Optional[Any] = None):
         """
         初始化内容过滤器
         
         Args:
             config: 配置字典
+            deduplicator: URL 去重器（可选）
         """
         self.config = config
+        self.deduplicator = deduplicator
         
         # 提取配置
         self.time_filter_hours = config.get('time_filter', {}).get('hours', 24)
@@ -134,6 +136,23 @@ class ContentFilter:
         
         logger.info(f"内容长度过滤: {len(articles)} -> {len(filtered)} 篇文章")
         return filtered
+
+    def filter_duplicates(self, articles: List[Article]) -> List[Article]:
+        """
+        过滤已处理过的文章 URL
+
+        Args:
+            articles: 文章列表
+
+        Returns:
+            过滤后的文章列表
+        """
+        if not self.deduplicator:
+            return articles
+
+        filtered = [article for article in articles if not self.deduplicator.is_duplicate(article.url)]
+        logger.info(f"去重过滤: {len(articles)} -> {len(filtered)} 篇文章")
+        return filtered
     
     def apply_all_filters(self, articles: List[Article]) -> List[Article]:
         """
@@ -155,6 +174,12 @@ class ContentFilter:
         
         # 2. 内容长度过滤
         filtered = self.filter_by_content_length(filtered)
+
+        # 3. 关键词过滤
+        filtered = self.filter_by_keywords(filtered)
+
+        # 4. URL 去重过滤（可选）
+        filtered = self.filter_duplicates(filtered)
         
         logger.info(f"过滤完成，剩余文章数: {len(filtered)}")
         return filtered
